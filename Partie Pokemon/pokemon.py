@@ -18,7 +18,6 @@ policePath=path()+"/Police/arial.ttf"
 class Pokemon():
     def __init__(self,pathPokemon="/Users/leob/Desktop/L3 Eco-MIASHS/Algo/Projet/Partie Pokemon/Pokemon intranet.csv",pathMA="/Users/leob/Desktop/L3 Eco-MIASHS/Algo/Projet/Partie Pokemon/matriceAdjacence.csv",pathAttaques="/Users/leob/Desktop/L3 Eco-MIASHS/Algo/Projet/Partie Pokemon/Attaques.csv"):
         self.df=pd.read_csv(pathPokemon,sep=',',index_col="Name")
-        self.df=self.df[~self.df.index.str.contains('Mega')]
         self.dfMatriceAdjacence = pd.read_csv(pathMA, index_col="Type Attaquant")
         self.dfAttaques=pd.read_csv(pathAttaques,sep=',',index_col="Nom_Attaque")
         self.deck1,self.deck2=self.decks()
