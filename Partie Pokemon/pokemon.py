@@ -4,6 +4,16 @@ import random as rd
 import tkinter as tk
 from PIL import Image, ImageTk
 from os import getcwd
+from pathlib import Path
+
+
+def path():
+    return str(Path(__file__).parent)
+
+
+policePath=path()+"/Police/arial.ttf"
+
+
 
 class Pokemon():
     def __init__(self,pathPokemon="/Users/leob/Desktop/L3 Eco-MIASHS/Algo/Projet/Partie Pokemon/Pokemon intranet.csv",pathMA="/Users/leob/Desktop/L3 Eco-MIASHS/Algo/Projet/Partie Pokemon/matriceAdjacence.csv",pathAttaques="/Users/leob/Desktop/L3 Eco-MIASHS/Algo/Projet/Partie Pokemon/Attaques.csv"):
@@ -15,8 +25,10 @@ class Pokemon():
         self.pokemonActif=None
         self.pokemonPassif=None
         ##Graphique
+        self.couleurPolicePokemon="#F2CF46"
         self.root = tk.Tk()
         self.root.title("Combat Pokémon")
+    
         self.canvas = tk.Canvas(self.root, width=1920, height=1080, bg="#323232")
         self.objet={}
         self.canvas.pack()
@@ -136,8 +148,7 @@ class Pokemon():
                 bestPokemon=pokemon
         return bestPokemon
     ##Partie graphique
-    def path(self):
-        return getcwd()
+    
     
     def affichagePokemonRestant(self,deck):
         for i in range(len(deck)):
@@ -155,7 +166,7 @@ class Pokemon():
     def affichageGagnant(self,pokemon):
         """Affichage du nom du pokemon gagnant"""
         nom=pokemon.name
-        label_nom = tk.Label(self.root, text=f"{nom} a gagné le combat!", font=("Arial", 20), bg="#323232", fg="white")
+        label_nom = tk.Label(self.root, text=f"{nom} a gagné le combat!", font=("Pokemon Solid", 20), bg="#323232", fg="white")
         label_nom.place(x=500, y=400)
         return label_nom
 
@@ -163,7 +174,7 @@ class Pokemon():
     def affichagePokemonAttaquant(self,pokemon,x=600,y=50):
         """Affichage du nom du pokemon qui attaque"""
         nom=pokemon.name
-        label_nom = tk.Label(self.root, text=f"{nom} attaque!", font=("Arial", 20), bg="#323232", fg="white")
+        label_nom = tk.Label(self.root, text=f"{nom} attaque!", font=("Pokemon Solid", 20), bg="#323232", fg="white")
         label_nom.place(x=x, y=y)
         return label_nom
     
@@ -193,12 +204,12 @@ class Pokemon():
 
     def affichageNomPokemon(self,pokemon,x,y,size):
         nom=pokemon.name
-        label_nom = tk.Label(self.root, text=nom, font=("Arial", size), bg="#323232", fg="white")
+        label_nom = tk.Label(self.root, text=nom, font=("Pokemon Solid", size), bg="#323232", fg=self.couleurPolicePokemon)
         label_nom.place(x=x, y=y)
     def pointsViePokemon(self,pokemon,x,y):
         texte=tk.StringVar()
         texte.set(f"HP: {pokemon['HP']}")
-        label_hp = tk.Label(self.root, textvariable=texte, font=("Arial", 16), bg="#323232", fg="white")
+        label_hp = tk.Label(self.root, textvariable=texte, font=("Pokemon Solid", 16), bg="#323232", fg=self.couleurPolicePokemon)
         
         self.objet['hp'+pokemon.name]=(texte, label_hp)
         label_hp.place(x=x, y=y)
@@ -221,12 +232,12 @@ class Pokemon():
     
     def trouverImageType1(self,pokemon):
         type=pokemon["Type 1"]
-        imageType=self.path()+"/Photos Pokemon/Type/"+type+".png"
+        imageType=path()+"/Photos Pokemon/Type/"+type+".png"
         return imageType
     def trouverImageType2(self,pokemon):
         type=pokemon["Type 2"]
         if isinstance(type,str):
-            imageType=self.path()+"/Photos Pokemon/Type/"+type+".png"
+            imageType=path()+"/Photos Pokemon/Type/"+type+".png"
         else:
             imageType=False
         return imageType
@@ -234,7 +245,7 @@ class Pokemon():
     def trouverImagePokemon(self,pokemon):
         index=self.df.loc[pokemon.name,"#"]
         pokemonName=pokemon.name.lower()
-        imagePokemon=self.path()+"/Photos Pokemon/Pokemons/"+str(index)+"-"+pokemonName+".png"
+        imagePokemon=path()+"/Photos Pokemon/Pokemons/"+str(index)+"-"+pokemonName+".png"
         return imagePokemon
     
     ##Partie affichage attaques disponibles
@@ -242,11 +253,11 @@ class Pokemon():
         attaquesDispo=self.attaquesDisponibles(pokemon)
         for i,attaque in enumerate(attaquesDispo.index):
             if i%2==0:
-                attaque_button = tk.Button(self.root, text=attaque, font=("Arial", 14), bg="#555555", fg="black",
+                attaque_button = tk.Button(self.root, text=attaque, font=("Pokemon Solid", 14), bg="#555555", fg="black",
                                           command=lambda atk=attaque: self.faireDegats(pokemon, pokemon2, atk))
                 attaque_button.place(x=x, y=y + (i//2)*50)
             else:
-                attaque_button = tk.Button(self.root, text=attaque, font=("Arial", 14), bg="#555555", fg="black",
+                attaque_button = tk.Button(self.root, text=attaque, font=("Pokemon Solid", 14), bg="#555555", fg="black",
                                           command=lambda atk=attaque: self.faireDegats(pokemon, pokemon2, atk))
                 attaque_button.place(x=x + 200, y=y + (i//2)*50)
         return
