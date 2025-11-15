@@ -3,8 +3,7 @@ import numpy as np
 import random as rd
 import tkinter as tk
 from PIL import Image, ImageTk
-import glob
-
+from os import getcwd
 
 class Pokemon():
     def __init__(self,pathPokemon="/Users/leob/Desktop/L3 Eco-MIASHS/Algo/Projet/Partie Pokemon/Pokemon intranet.csv",pathMA="/Users/leob/Desktop/L3 Eco-MIASHS/Algo/Projet/Partie Pokemon/matriceAdjacence.csv",pathAttaques="/Users/leob/Desktop/L3 Eco-MIASHS/Algo/Projet/Partie Pokemon/Attaques.csv"):
@@ -13,10 +12,13 @@ class Pokemon():
         self.dfMatriceAdjacence = pd.read_csv(pathMA, index_col="Type Attaquant")
         self.dfAttaques=pd.read_csv(pathAttaques,sep=',',index_col="Nom_Attaque")
         self.deck1,self.deck2=self.decks()
+        self.pokemonActif=None
+        self.pokemonPassif=None
         ##Graphique
         self.root = tk.Tk()
         self.root.title("Combat Pokémon")
         self.canvas = tk.Canvas(self.root, width=1920, height=1080, bg="#323232")
+        self.objet={}
         self.canvas.pack()
     def decks(self):
         fracPokemon=self.df.sample(120).sort_values(by="Total",ascending=False)
@@ -51,9 +53,9 @@ class Pokemon():
         return deck1,deck2
 
 
-    def degat(self,pokemonATT,pokemonDEF,attaquesDispo):
-        nom,typeAttaque,puissance=self.attaqueChoisie(attaquesDispo)
-        print(puissance)
+    def degat(self,pokemonATT,pokemonDEF,attaque):
+        typeAttaque=self.dfAttaques.loc[attaque,"Type"]
+        puissance=self.dfAttaques.loc[attaque,"Puissance"]
         damage=((((pokemonATT["Level"]*0.4+2)*pokemonATT["Attack"]*puissance)/(pokemonDEF["Defense"])/15)+2)*np.random.uniform(0.85,1)*self.efficacite(typeAttaque,pokemonDEF["Type 1"],pokemonDEF["Type 2"])
         return round(damage,0)
 
@@ -70,31 +72,28 @@ class Pokemon():
             return (pokemon2,pokemon1)
         else:
             return (pokemon1,pokemon2)
+    
+    def estilgagnant(self,pokemon):
+        if pokemon["HP"]<=0:
+            return True
+    def faireDegats(self,attaquant,defenseur,attaque):
+        if attaquant.name!=self.pokemonActif.name:
+            return
         
-    def combat(self,pokemon1,pokemon2):
-        pokemonA,pokemonB=self.premierAttaquant(pokemon1,pokemon2)
-        attaquesPA=self.attaquesDisponibles(pokemonA)
-        attaquesPB=self.attaquesDisponibles(pokemonB)
+        if self.estilgagnant(defenseur):
+            return self.affichageGagnant(attaquant)
+        
+        damage=self.degat(attaquant,defenseur,attaque)
+        defenseur["HP"]=defenseur["HP"]-damage
+        self.objet['hp'+defenseur.name][0].set(f"HP: {defenseur['HP']}")
 
-        tour=1
-        while pokemonA["HP"]>0 and pokemonB["HP"]>0:
-            if tour%2!=0:
-                damage=self.degat(pokemonA,pokemonB,attaquesPA)
-                pokemonB["HP"]=pokemonB["HP"]-damage
-                print(f"{pokemonA.name} attaque {pokemonB.name} et lui inflige {damage} points de dégats. Il lui reste {pokemonB['HP']} points de vie.")
-            else:
-                damage=self.degat(pokemonB,pokemonA,attaquesPB)
-                pokemonA["HP"]=pokemonA["HP"]-damage
-                print(f"{pokemonB.name} attaque {pokemonA.name} et lui inflige {damage} points de dégats. Il lui reste {pokemonA['HP']} points de vie.")
-            tour+=1
-        if pokemonA["HP"]<=0:
-            pokemonA["Level"]+=1
-            pokemonB["Level"]+=1    
-            return pokemonB.name
-        else:
-            pokemonB["Level"]+=1
-            pokemonA["Level"]+=1
-            return pokemonA.name
+        if self.estilgagnant(defenseur):
+            return self.affichageGagnant(attaquant)
+        
+        self.pokemonActif, self.pokemonPassif = self.pokemonPassif, self.pokemonActif
+        self.affichagePokemonAttaquant(self.pokemonActif)
+        return damage
+    
     def attaquesDisponibles(self,pokemon):
         type1=pokemon["Type 1"]
         type2=pokemon["Type 2"]
@@ -108,22 +107,24 @@ class Pokemon():
             
         return attaquesDisponibles
 
-    def attaqueChoisie(self,attaquesdispo):
-
-        nom=rd.choice(attaquesdispo.index.tolist()) ## A modifier pour un bouton sur l'interface graphique
-        print(nom)
-
-        typeAttaque=attaquesdispo.loc[nom,"Type"]
-        puissance=attaquesdispo.loc[nom,"Puissance"]
-        return nom,typeAttaque,puissance
-
-    def strategieAttaque(self,pokemonAtt,pokemonDef,attaquesDispo):        
+    def JeuCombat(self,pokemonJoueur1,pokemonJoueur2):
+        pokemonJoueur1=pokemonJoueur1.copy()
+        pokemonJoueur2=pokemonJoueur2.copy()
+        self.affichagePokemonCombat([pokemonJoueur1,pokemonJoueur2])
+        pokemonA,pokemonB=self.premierAttaquant(pokemonJoueur1,pokemonJoueur2)
+        self.pokemonActif=pokemonA
+        self.pokemonPassif=pokemonB
+        self.affichagePokemonAttaquant(pokemonA)
+        
+        pass
+    ##Partie IA
+    def strategieAttaqueIA(self,pokemonAtt,pokemonDef,attaquesDispo):        
         l=[]
         for attaque in attaquesDispo.index:
-            l.append((attaque,self.degat(pokemonAtt,pokemonDef,attaquesDispo.loc[[attaque]])))
+            l.append((attaque,self.degat(pokemonAtt,pokemonDef,attaque)))
         return max(l,key=lambda x:x[1])
     
-    def choixPokemon(self,deck,pokemonAdv):
+    def choixPokemonIA(self,deck,pokemonAdv):
         bestPokemon=None
         bestDamage=-1
         for i in range(len(deck)):
@@ -134,35 +135,137 @@ class Pokemon():
                 bestDamage=damage
                 bestPokemon=pokemon
         return bestPokemon
+    ##Partie graphique
+    def path(self):
+        return getcwd()
     
-    ##Partie graphique$
-    def affichageByType(self,type):
-        dfByType = {Type: sous_df for Type, sous_df in self.df.groupby('Type 1')}
-        for type in
+    def affichagePokemonRestant(self,deck):
+        for i in range(len(deck)):
+            pokemon=deck.iloc[i]
+            image_path=self.trouverImagePokemon(pokemon)
+            pil_image = Image.open(image_path)
+            pil_image = pil_image.resize((50, 50), Image.Resampling.LANCZOS)
+            tk_image = ImageTk.PhotoImage(pil_image)
+            pokemon_label = tk.Label(self.root, image=tk_image)
+            pokemon_label.image = tk_image  # Keep a reference to avoid garbage collection
+            pokemon_label.place(x=50 + i*110, y=50)
+            ##Affichage nom pokemon
+            self.affichageNomPokemon(pokemon,50 + i*110,10,10)
+    
+    def affichageGagnant(self,pokemon):
+        """Affichage du nom du pokemon gagnant"""
+        nom=pokemon.name
+        label_nom = tk.Label(self.root, text=f"{nom} a gagné le combat!", font=("Arial", 20), bg="#323232", fg="white")
+        label_nom.place(x=500, y=400)
+        return label_nom
 
-    def trouverImageType(self,pokemon):
+    ##Affichage du nom du pokemon qui attaque
+    def affichagePokemonAttaquant(self,pokemon,x=600,y=50):
+        """Affichage du nom du pokemon qui attaque"""
+        nom=pokemon.name
+        label_nom = tk.Label(self.root, text=f"{nom} attaque!", font=("Arial", 20), bg="#323232", fg="white")
+        label_nom.place(x=x, y=y)
+        return label_nom
+    
+    ##Partie affichage pokemon
+    def choixPokemonGraphique(self,deck,pokemonAdv):
+        """
+        Fonction permettant a l'utilisateur de choisir son pokemon via l'interface graphique
+        """
+    def affichagePokemonCombat(self,listePokemon):
+        for i,pokemon in enumerate(listePokemon):
+            
+            deltaX=i*800
+            deltaY=0
+            image_path=self.trouverImagePokemon(pokemon)
+            pil_image = Image.open(image_path)
+            pil_image = pil_image.resize((400, 400), Image.Resampling.LANCZOS)
+            tk_image = ImageTk.PhotoImage(pil_image)
+            pokemon_label = tk.Label(self.root, image=tk_image)
+            pokemon_label.image = tk_image  # Keep a reference to avoid garbage collection
+            pokemon_label.place(x=100+deltaX, y=150+deltaY)
+            self.affichageNomPokemon(pokemon,100+deltaX,50+deltaY,24)
+            self.pointsViePokemon(pokemon,100+deltaX,90+deltaY)
+            self.affichageTypePokemon(pokemon,100+deltaX,130+deltaY)
+        self.affichageAttaquesDisponibles(listePokemon[0], 100, 600, listePokemon[1])
+        self.affichageAttaquesDisponibles(listePokemon[1], 900, 600, listePokemon[0])
+
+
+    def affichageNomPokemon(self,pokemon,x,y,size):
+        nom=pokemon.name
+        label_nom = tk.Label(self.root, text=nom, font=("Arial", size), bg="#323232", fg="white")
+        label_nom.place(x=x, y=y)
+    def pointsViePokemon(self,pokemon,x,y):
+        texte=tk.StringVar()
+        texte.set(f"HP: {pokemon['HP']}")
+        label_hp = tk.Label(self.root, textvariable=texte, font=("Arial", 16), bg="#323232", fg="white")
+        
+        self.objet['hp'+pokemon.name]=(texte, label_hp)
+        label_hp.place(x=x, y=y)
+        return label_hp
+
+    def affichageTypePokemon(self,pokemon,x,y):
+        imageType1_path=self.trouverImageType1(pokemon)
+        imageType1_path=Image.open(imageType1_path)
+        tk_image1 = ImageTk.PhotoImage(imageType1_path)
+        type1_label = tk.Label(self.root, image=tk_image1, bg="#323232")
+        type1_label.image = tk_image1  # Keep a reference to avoid garbage collection
+        type1_label.place(x=x, y=y)
+        imageType2_path=self.trouverImageType2(pokemon)
+        if imageType2_path:
+            imageType2_path = Image.open(imageType2_path)
+            tk_image2 = ImageTk.PhotoImage(imageType2_path)
+            type2_label = tk.Label(self.root, image=tk_image2, bg="#323232")
+            type2_label.image = tk_image2  # Keep a reference to avoid garbage collection
+            type2_label.place(x=x+144, y=y)
+    
+    def trouverImageType1(self,pokemon):
+        type=pokemon["Type 1"]
+        imageType=self.path()+"/Partie Pokemon/Photos Pokemon/Type/"+type+".png"
+        return imageType
+    def trouverImageType2(self,pokemon):
+        type=pokemon["Type 2"]
+        if isinstance(type,str):
+            imageType=self.path()+"/Partie Pokemon/Photos Pokemon/Type/"+type+".png"
+        else:
+            imageType=False
+        return imageType
 
     def trouverImagePokemon(self,pokemon):
-        ##os.getcwd()
-        print(pokemon.name)
         index=self.df.loc[pokemon.name,"#"]
-        print(index)
         pokemonName=pokemon.name.lower()
-        imagePokemon="/Users/leob/Desktop/L3 Eco-MIASHS/Algo/Projet/Partie Pokemon/Photos Pokemon/Pokemons/"+str(index)+"-"+pokemonName+".png"
+        imagePokemon=self.path()+"/Partie Pokemon/Photos Pokemon/Pokemons/"+str(index)+"-"+pokemonName+".png"
         return imagePokemon
-    def afficherPokemon(self,pokemon,x,y):
-        ##Affiche le pokemon à la position (x,y)
-        image_path=self.trouverImage(pokemon)
-        pil_image = Image.open(image_path)
-        pil_image = pil_image.resize((600, 600), Image.Resampling.LANCZOS)
-        tk_image = ImageTk.PhotoImage(pil_image)
-        pokemon_label = tk.Label(self.root, image=tk_image)
-        pokemon_label.image = tk_image  # Keep a reference to avoid garbage collection
-        pokemon_label.place(x=x, y=y)
-        ##Affiche le nom du pokemon
-
+    
+    ##Partie affichage attaques disponibles
+    def affichageAttaquesDisponibles(self,pokemon,x,y,pokemon2):
+        attaquesDispo=self.attaquesDisponibles(pokemon)
+        for i,attaque in enumerate(attaquesDispo.index):
+            if i%2==0:
+                attaque_button = tk.Button(self.root, text=attaque, font=("Arial", 14), bg="#555555", fg="black",
+                                          command=lambda atk=attaque: self.faireDegats(pokemon, pokemon2, atk))
+                attaque_button.place(x=x, y=y + (i//2)*50)
+            else:
+                attaque_button = tk.Button(self.root, text=attaque, font=("Arial", 14), bg="#555555", fg="black",
+                                          command=lambda atk=attaque: self.faireDegats(pokemon, pokemon2, atk))
+                attaque_button.place(x=x + 200, y=y + (i//2)*50)
+        return
+##Tests
 
 test=Pokemon("/Users/leob/Desktop/L3 Eco-MIASHS/Algo/Projet/Partie Pokemon/Pokemon intranet.csv")
+
+
+##test affichage jeucombat
+pokemonJ1=test.deck1.iloc[0]
+pokemonJ2=test.deck2.iloc[0]
+test.JeuCombat(pokemonJ1,pokemonJ2)
+test.root.mainloop()
+
+
+
+
+
+
 """print("Deck Joueur 1:")
 print(test.deck1)
 print("\nDeck Joueur 2:")
