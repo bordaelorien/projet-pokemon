@@ -221,12 +221,12 @@ class Pokemon():
     
     def trouverImageType1(self,pokemon):
         type=pokemon["Type 1"]
-        imageType=self.path()+"/Partie Pokemon/Photos Pokemon/Type/"+type+".png"
+        imageType=self.path()+"/Photos Pokemon/Type/"+type+".png"
         return imageType
     def trouverImageType2(self,pokemon):
         type=pokemon["Type 2"]
         if isinstance(type,str):
-            imageType=self.path()+"/Partie Pokemon/Photos Pokemon/Type/"+type+".png"
+            imageType=self.path()+"/Photos Pokemon/Type/"+type+".png"
         else:
             imageType=False
         return imageType
@@ -234,7 +234,7 @@ class Pokemon():
     def trouverImagePokemon(self,pokemon):
         index=self.df.loc[pokemon.name,"#"]
         pokemonName=pokemon.name.lower()
-        imagePokemon=self.path()+"/Partie Pokemon/Photos Pokemon/Pokemons/"+str(index)+"-"+pokemonName+".png"
+        imagePokemon=self.path()+"/Photos Pokemon/Pokemons/"+str(index)+"-"+pokemonName+".png"
         return imagePokemon
     
     ##Partie affichage attaques disponibles
