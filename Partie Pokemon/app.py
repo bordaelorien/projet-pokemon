@@ -11,7 +11,7 @@ from paths import path
 
 
 class PokemonApp(tk.Tk):
-    def __init__(self):
+    def __init__(self,p1,p2):
         super().__init__()
         self.title("Pokémon Battle")
         self.geometry("1600x900")
@@ -23,12 +23,11 @@ class PokemonApp(tk.Tk):
         # Chargement des données
         self.df_pokemon = dl.dfPokemon()
         self.df_attacks = dl.dfAttaques()
-        self.deck1, self.deck2 = db.decks(self.df_pokemon)
         self.logic = gl.GameLogic(self.df_attacks)
 
         # État du combat
-        self.pokemon_actif = self.deck1.iloc[0]
-        self.pokemon_passif = self.deck2.iloc[0]
+        self.pokemon_actif = p1
+        self.pokemon_passif = p2
 
         self.objet = {}
 

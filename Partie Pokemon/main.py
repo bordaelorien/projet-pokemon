@@ -1,6 +1,6 @@
 # main.py
 from app import PokemonApp
+from selection_window import SelectionWindow
 
 if __name__ == "__main__":
-    app = PokemonApp()
-    app.mainloop()
+    SelectionWindow().mainloop()
