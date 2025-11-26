@@ -34,7 +34,7 @@ class GameLogic:
             return coeff1*coeff2
         return coeff1
 
-    def est_il_gagnant(self, pokemon):
+    def estIlPerdant(self, pokemon):
         return pokemon["HP"] <= 0
     
     def JeuCombat(self,pokemonJoueur1,pokemonJoueur2):

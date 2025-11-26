@@ -3,6 +3,8 @@ import deck_builder as db
 import data_loader as dl
 from paths import *
 from tkinter import ttk
+from PIL import Image, ImageTk
+from affichageCombat import PokemonApp
 class Jeu () :
 
     def __init__(self):
@@ -34,7 +36,7 @@ class Jeu () :
 
         #   objet graphique du contour de la case à jouer
         self.case_a_jouer = None
-
+        
         #   booléen: est-ce que le joueur vient de gagner une sous-grille?
         self.gagnant_sous_grille = False
         #Deck :
@@ -42,86 +44,95 @@ class Jeu () :
 
         # BOUTONS :
         self.bouton_deck()
+        self.afficherDecks()
+        listeDeck=[self.deck1,self.deck2]
+        self.pokeChoisiDeck1=None
+        self.pokeChoisiDeck2=None
+        self.color=None
+
         
+    def tailleImage(self,path, sizeX,sizeY):
+        try:
+            image = Image.open(path)
+            image = image.resize((sizeX, sizeY), Image.LANCZOS)
+            return ImageTk.PhotoImage(image)
+        except:
+            return None
         
 
     def bouton_deck(self):
-        bouton_deck1 = tk.Button(self.fenetre, text="Deck Joueur 1",bg="light blue", command=lambda: self.afficher_deck(True))
-        bouton_deck1.place(x=900, y=100,width=200,height=30)
+        label_deck=tk.Label(self.fenetre,text="Deck 1",bg="light blue",fg="#2b2b2b",font=("Arial", 16, "bold"))
+        label_deck.place(x=950, y=10)
+        label_deck=tk.Label(self.fenetre,text="Deck 2",bg="light blue",fg="#2b2b2b",font=("Arial", 16, "bold"))
+        label_deck.place(x=1250, y=10)
         self.selected_label_j1 = tk.Label(self.fenetre,text="Aucun Pokémon ",bg="light blue",fg="#2b2b2b",font=("Arial", 16, "bold"))
-        self.selected_label_j1.place(x=900, y=140)
-        bouton_deck2 = tk.Button(self.fenetre, text="Deck Joueur 2",bg="light blue", command=lambda: self.afficher_deck(False))
-        bouton_deck2.place(x=1200, y=100,width=200,height=30)
+        self.selected_label_j1.place(x=900, y=60)
         self.selected_label_j2 = tk.Label(self.fenetre,text="Aucun Pokémon ",bg="light blue",fg="#2b2b2b",font=("Arial", 16, "bold"))
-        self.selected_label_j2.place(x=1200, y=140)
-    def afficher_deck(self,bin):
-        if bin:
-            deck = self.deck1.copy()
-            player = 1
-        else:
-            deck = self.deck2.copy()
-            player = 2
+        self.selected_label_j2.place(x=1200, y=60)
+    def afficherDecks(self):
+        for i in range(2):
+            if i==0:
+                deck=self.deck1
+            else:
+                deck=self.deck2
+            grouped = deck.groupby("Type 1")
+            j=0
+            for typename,group in grouped:
+                deltaY=40
+                if i==0:
+                    type_name=typename
+                    imageType= self.tailleImage(pathType(type_name.lower()),144, 32)
 
-        grouped = deck.groupby("Type 1")
+                    btn = tk.Button(self.fenetre,image=imageType,font=("Arial", 16, "bold"),bg="#1e1e1e",fg="white",padx=10,pady=10,command=lambda t=type_name ,d=deck: self.afficher_pokemons_type(t, d))
+                    btn.image = imageType
+                    btn.place(x=900, y=100 + deltaY*j)
+                    j+=1
+                else:
+                    type_name=typename
+                    imageType= self.tailleImage(pathType(type_name.lower()), 144, 32)
+                    
+                    btn = tk.Button(self.fenetre,image=imageType,font=("Arial", 16, "bold"),bg="#1e1e1e",fg="white",padx=10,pady=10,command=lambda t=type_name, d=deck: self.afficher_pokemons_type(t, d))
+                    btn.image = imageType
+                    btn.place(x=1200, y=100 + deltaY*j)
+                    j+=1
+
+    def afficher_pokemons_type(self, type_name, deck):
+        pokemonsType = deck[deck["Type 1"] == type_name]
+
         root = tk.Toplevel(self.fenetre)
-        root.title("Deck Pokémon")
-        root.geometry("900x900")     
+        root.title(f"Pokémons de type {type_name}")
+        root.geometry("600x800")
 
-        # ---- CONTENEUR GLOBAL ----
-        container = tk.Frame(root)
-        container.pack(fill="both", expand=True)
+        frame = tk.Frame(root, bg="#2b2b2b")
+        frame.pack(fill="both", expand=True)
 
-        # ---- CANVAS + SCROLLBAR ----
-        canvas = tk.Canvas(container, bg="#2b2b2b")
-        canvas.pack(side="left", fill="both", expand=True)
+        
+        for col in range(3):
+            frame.columnconfigure(col, weight=1)
+        rowGrid = 0
+        col = 0
+        
+        for num, rowPokemon in pokemonsType.iterrows():
+            try:
+                img_pokemon = tk.PhotoImage(file=pathPokemon(rowPokemon["#"], rowPokemon["Name"].lower()))
+                img_pokemon=self.tailleImage(pathPokemon(rowPokemon["#"], rowPokemon["Name"].lower()),100,100)
+            except:
+                img_pokemon = None
+            btn = tk.Button(frame,text=rowPokemon["Name"],image=img_pokemon,compound="top",font=("Pokemon Solid", 14),bg="white",fg="#3c3c3c",padx=5,pady=5, command=lambda window=root, rowP=rowPokemon ,name=rowPokemon["Name"], player=1 if rowPokemon["Name"] in self.deck1["Name"].values else 2: (window.destroy(), self.pokemonChoisi(name, player,rowP)))
+            btn.image = img_pokemon
+            btn.grid(row=rowGrid, column=col, padx=10, pady=10, sticky="nsew")
+            col += 1
+            if col >= 3:  
+                col = 0
+                rowGrid += 1
+    def pokemonChoisi(self, pokemonName, joueur,row=None):
+        if joueur == 1:
+            self.selected_label_j1.config(text=pokemonName)
+            self.pokeChoisiDeck1=row
+        else:
+            self.selected_label_j2.config(text=pokemonName)
+            self.pokeChoisiDeck2=row
 
-        scrollbar = ttk.Scrollbar(container, orient="vertical", command=canvas.yview)
-        scrollbar.pack(side="right", fill="y")
-
-        canvas.configure(yscrollcommand=scrollbar.set)
-
-        # ---- FRAME SCROLLABLE ----
-        scroll_frame = tk.Frame(canvas, bg="#2b2b2b")
-        canvas.create_window((0, 0), window=scroll_frame, anchor="nw")
-        scroll_frame.columnconfigure(0, weight=1)
-        scroll_frame.columnconfigure(1, weight=1)
-
-        # mise à jour automatique du scrollregion
-        scroll_frame.bind(
-            "<Configure>",
-            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
-        )
-
-        types = list(grouped.groups.keys())
-        mid = len(types) // 2   # moitié des types
-        col = 0   # on commence dans la colonne gauche
-        row = 0     
-
-
-        for type_name, group in grouped:
-            if row >= (len(types) + 1) // 2:
-                col = 1  # passer à la colonne de droite
-                row = 0  # réinitialiser la ligne
-            imageType= tk.PhotoImage(file=pathType(type_name.lower()))
-            
-            lf = tk.LabelFrame(scroll_frame, fg="white", bg="#1e1e1e",font=("Arial", 16, "bold"), padx=10, pady=10)
-            
-            lf.grid(row=row, column=col, padx=10, pady=10, sticky="nsew")
-            row += 1
-            label=tk.Label(lf,image=imageType, bg="#1e1e1e")
-            label.image=imageType
-            label.pack()
-
-            for _, row in group.iterrows():
-
-                image= tk.PhotoImage(file=pathPokemon(row["#"], row["Name"].lower()))
-                image=image.subsample(2,2)
-
-                #self.deck_images.append(image) 
-                btn = tk.Button(lf, text=row["Name"],compound="top",image=image,font=("Pokemon Solid", 14),bg="#3c3c3c", fg="black",command=lambda r=row: row)
-                btn.image=image
-                btn.pack(fill="both", pady=4)
-    
 
     def dessiner_mini_morpion(self,ligne,col):
 
@@ -258,14 +269,27 @@ class Jeu () :
         else:
             if (gl,gc)==self.case:
                 self.jouer(gl, gc, l, c)
-    
+    def deckActuel(self):
+        if self.joueur=='X':
+            self.color="blue"
+            self.deck1.drop(self.deck1[self.deck1["#"] == self.pokeChoisiDeck1["#"]].index, inplace=True)
+            return self.pokeChoisiDeck1
+        else:
+            self.color="red"
+            self.deck2.drop(self.deck2[self.deck2["#"] == self.pokeChoisiDeck2["#"]].index, inplace=True)
+            return self.pokeChoisiDeck2
     def jouer(self, gl, gc, l, c):
+        pokemon=self.deckActuel()
+        if pokemon is None:
+            return
         #si il n'y pas déjà un pokemon sur la case, je joueur en pose un
         if self.pokemons_places[gl][gc][l][c] == None:
             self.placerPokemon(gl, gc, l, c)
+            self.resetPokemonChoisi()
         #si l'adversaire a déjà mis un pokemon sur cette case, on lance un combat pour décider qui remporte la case
         elif self.pokemons_places[gl][gc][l][c][0] != self.joueur:
-            self.initierCombat(gl, gc, l, c)
+            self.initierCombat(gl, gc, l, c,pokemon)
+            self.resetPokemonChoisi()
         #si le joueur a déjà mis un pokemon sur la case, on fait comme si il n'avait cliqué sur rien
         else:
             return
@@ -285,26 +309,59 @@ class Jeu () :
         #dessin d'un encadrement graphique pour le prochain joueur:
         self.dessiner_encadrement()
 
-    def placerPokemon(self, gl, gc, l, c, pokemon):
+    def placerPokemon(self, gl, gc, l, c):
+        if self.pokemons_places[gl][gc][l][c]==-1:
+            return
+        pokemon=self.deckActuel()
+        if pokemon is None:
+            return
+        
         #on place le pokemon dans le tableau
-        self.pokemons_places[gl][gc][l][c] = (self.joueur,pokemon["#"])
+        self.pokemons_places[gl][gc][l][c] = (self.joueur, pokemon,pokemon["#"])
 
         #on le place graphiquement
-        image = tk.PhotoImage(file=pathPokemon(pokemon["#"], pokemon["Name"].lower()))
-        image = image.subsample(11, 11)
-        self.boutons[(gl, gc, l, c)].configure(image=image, compound="top" , text=f"Joueur : {self.joueur}")
+        image=self.tailleImage(pathPokemon(pokemon["#"], pokemon["Name"].lower()),50,50)
+        self.boutons[(gl, gc, l, c)].configure(image=image, compound="top" , bg=self.color, highlightbackground=self.color, highlightthickness=5)
         self.boutons[(gl, gc, l, c)].image = image
+        
+    def resetPokemonChoisi(self):
+        if self.joueur=='X':
+            self.pokeChoisiDeck1=None
+            self.color=None
+            self.selected_label_j1.config(text="Aucun Pokémon ")
+        else:
+            self.pokeChoisiDeck2=None
+            self.color=None
+            self.selected_label_j2.config(text="Aucun Pokémon ")
 
-    def initierCombat(self, gl, gc, l, c):
+    def initierCombat(self, gl, gc, l, c,pokemon):
         pokemon_adversaire = self.pokemons_places[gl][gc][l][c][1]
-        pokemon_joueur = "bulbasaur"
-        #gagnant = combat(pokemon_joueur, pokemon_adversaire)
-        #la fonction 'combat' déclenche un combat pokemon et renvoie qui est le gagnant
-        gagnant = self.joueur
+        pokemonAttaque = pokemon
+        combat = PokemonApp(pokemonAttaque, pokemon_adversaire,self.fenetre)
+        combat.mainloop()
+        gagnant_combat = combat.winner
+        if gagnant_combat["#"] == pokemonAttaque["#"]:
+            self.grille[gl][gc][l][c] = self.joueur
+            self.boutons[(gl, gc, l, c)].configure(text=self.joueur,image="",compound=None, bg=self.color, highlightbackground=self.color, highlightthickness=5,fg=self.color)
+            self.boutons[(gl, gc, l, c)].image = None
+            self.pokemons_places[gl][gc][l][c] = -1
 
-        #si le joueur gagne le combat, il remporte la case définitivement
-        if gagnant == self.joueur:
-            self.gagnerCase(gl, gc, l, c)
+        elif gagnant_combat["#"] == pokemon_adversaire["#"]:
+            if self.joueur=='X':
+                self.grille[gl][gc][l][c] = 'O'
+                self.boutons[(gl, gc, l, c)].configure(text='O',image="",compound=None, bg=self.color, highlightbackground=self.color, highlightthickness=5,fg=self.color)
+                self.boutons[(gl, gc, l, c)].image = None
+                self.pokemons_places[gl][gc][l][c] = -1
+            else:
+                self.grille[gl][gc][l][c] = 'X'
+                self.boutons[(gl, gc, l, c)].configure(text='X',image="",compound=None, bg=self.color, highlightbackground=self.color, highlightthickness=5,fg=self.color)
+                self.boutons[(gl, gc, l, c)].image = None
+                self.pokemons_places[gl][gc][l][c] = -1
+                
+    
+
+
+       
         
 
     # Création des boutons pour cliquer dans les cases de jeu

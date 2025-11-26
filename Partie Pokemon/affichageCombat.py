@@ -1,6 +1,6 @@
 # app.py
 import tkinter as tk
-from tkinter import StringVar
+from tkinter import StringVar,ttk
 
 import data_loader as dl
 import deck_builder as db
@@ -10,9 +10,9 @@ from images import *
 from paths import path
 
 
-class PokemonApp(tk.Tk):
-    def __init__(self,p1,p2):
-        super().__init__()
+class PokemonApp(tk.Toplevel):
+    def __init__(self,p1,p2,fenetrePrincipale=None):
+        super().__init__(fenetrePrincipale)
         self.title("Pokémon Battle")
         self.geometry("1600x900")
         self.bg_color = "#323232"
@@ -25,46 +25,39 @@ class PokemonApp(tk.Tk):
         self.df_attacks = dl.dfAttaques()
         self.logic = gl.GameLogic(self.df_attacks)
 
-        # État du combat
+       # Position fixe à l'écran
+        self.pokemon_left = p1
+        self.pokemon_right = p2
+
+        # Logique de combat (celui qui joue)
         self.pokemon_actif = p1
         self.pokemon_passif = p2
 
         self.objet = {}
+        self.image=[]
+        ##MESSAGES :
+        self.winner=None
+       
 
         self.interfaceUtilisateur()
         self.logic.JeuCombat(self.pokemon_actif, self.pokemon_passif)
 
-    # ----------------------------------------------------
-    # INTERFACE UTILISATEUR
-    # ----------------------------------------------------
-
     def interfaceUtilisateur(self):
         title = tk.Label(self,text="Pokémon Battle",font=("Pokemon Solid", 32),bg=self.bg_color,fg="#FFD700",)
-        attaquant=tk.Label(self,text="Attaquant",font=("Pokemon Solid", 20),bg=self.bg_color,fg="#444A7C")
-        defenseur=tk.Label(self,text="Défenseur",font=("Pokemon Solid", 20),bg=self.bg_color,fg="#B53521")
-        attaquant.place(x=100, y=50)
-        defenseur.place(x=1000, y=50)
         title.pack(pady=10)
 
         self.combat_frame = tk.Frame(self, bg=self.bg_color)
         self.combat_frame.pack(fill="both", expand=True)
-        #self.texteAttaque_Defense()
+        self.messagePokemon=tk.Label(self.combat_frame,text=f"{self.pokemon_actif["Name"]} attaque !",bg=self.bg_color,fg=self.fg_color,font=("Arial", 16, "bold"))
+        self.messagePokemon.place(x=600, y=50)
+        self.affichage_pokemon_combat([self.pokemon_left, self.pokemon_right])
 
-        self.affichage_pokemon_combat([self.pokemon_actif, self.pokemon_passif])
-
-    # ----------------------------------------------------
-    # AFFICHAGE DES POKÉMON
-    # ----------------------------------------------------
 
     def affichage_pokemon_combat(self, liste_pokemon):
-        ##Suppression de la liste des widgets de la frame combat
-        for widget in self.combat_frame.winfo_children(): 
-            widget.destroy()
-
         for i, pokemon in enumerate(liste_pokemon):
             deltaX = i * 900
-            
             image = imagePokemon(str(pokemon["#"]),pokemon["Name"])
+            self.image.append(image)
             label_img = tk.Label(self.combat_frame,image=image)
             label_img.image = image # garder une référence pour éviter le garbage collector
             label_img.place(x=100 + deltaX, y=150)
@@ -77,10 +70,6 @@ class PokemonApp(tk.Tk):
 
         # Affichage des attaques du pokémon 2
         self.affichage_attaques_disponibles(liste_pokemon[1], 1000, 600, liste_pokemon[0])
-
-    def texteAttaque_Defense(self):
-        tk.Label(self.combat_frame,text="Attaquant",font=("Pokemon Solid", 20),bg=self.bg_color,fg="white",).place(x=350, y=550)
-        tk.Label(self.combat_frame,text="Défenseur",font=("Pokemon Solid", 20),bg=self.bg_color,fg=self.fg_color,).place(x=1150, y=550)
 
     def affichage_nom_pokemon(self, pokemon, x, y, size):
         tk.Label(self.combat_frame,text=str(pokemon["Name"]),font=("Pokemon Solid", size),bg=self.bg_color,fg=self.fg_color,).place(x=x, y=y)
@@ -134,39 +123,38 @@ class PokemonApp(tk.Tk):
     # ----------------------------------------------------
 
     def faire_degats(self, attaquant, defenseur, attaque):
+        self.messagePokemon.config(text=f"{defenseur['Name']} attaque !")
         
         if attaquant["Name"]!= self.pokemon_actif["Name"]:
             return
         
-        if self.logic.est_il_gagnant(defenseur):
-            return self.affichage_gagnant(attaquant)
+        if self.logic.estIlPerdant(defenseur):
+            return 
 
         damage = self.logic.degat(attaquant, defenseur, attaque)
+        
         defenseur["HP"] -= damage
-        print(damage)
 
         
         self.objet["hp"+str(defenseur["#"])].set(f"HP: {defenseur['HP']}")
+        self.pokemon_actif, self.pokemon_passif = self.pokemon_passif, self.pokemon_actif
 
 
+        if self.logic.estIlPerdant(defenseur):
+            self.messagePokemon.config(text=f"{attaquant['Name']} gagne le combat !")
+            self.winner=attaquant
+            #Creation d'un style car Mac Os ne supporte pas les bouton avec bg et fg
+            style=ttk.Style()
+            style.theme_use('clam')
+            style.configure('Quit.TButton',font=("Pokemon Solid", 30),background="#FF0000",foreground="#FFFFFF")
+            btnQuitter = ttk.Button(self.combat_frame, text="Quitter", style='Quit.TButton', command=self.fincombat)
+            btnQuitter.place(x=700, y=500)
+            
 
-        if self.logic.est_il_gagnant(defenseur):
-            return self.affichage_gagnant(attaquant)
-        print("Dégâts infligés :", damage)
+    def fincombat(self):
+     
+        self.objet = {}                  
+        self.withdraw()   
+        self.quit()
 
-        if attaquant["Name"] != self.pokemon_actif["Name"]:
-            return
-
-        self.pokemon_actif, self.pokemon_passif =self.pokemon_passif,self.pokemon_actif        
-
-        self.affichage_pokemon_combat([self.pokemon_actif, self.pokemon_passif])
-
-
-    # ----------------------------------------------------
-    # FENÊTRE DE VICTOIRE
-    # ----------------------------------------------------
-
-    def affichage_gagnant(self, gagnant):
-        popup = tk.Toplevel(self, bg=self.bg_color)
-
-        tk.Label(popup,text=f"Victoire ! {gagnant['Name']} gagne !",font=("Pokemon Solid", 20),bg=self.bg_color,fg="#FFD700").pack(padx=20, pady=20)
+            

@@ -4,7 +4,7 @@ from tkinter import ttk
 import data_loader as dl
 import deck_builder as db
 import game_logic as gl
-from app import PokemonApp
+from affichageCombat import PokemonApp
 
 
 class SelectionWindow(tk.Tk):
