@@ -26,12 +26,14 @@ class PokemonApp(tk.Toplevel):
         self.logic = gl.GameLogic(self.df_attacks)
 
        # Position fixe à l'écran
-        self.pokemon_left = p1
-        self.pokemon_right = p2
+        self.pokemon_left,self.pokemon_right=gl.GameLogic(self.df_attacks).premierAttaquant(p1.copy(),p2.copy())
+        HPleft=self.pokemon_left["HP"]
+        
+        self.pokemon_right["HP"]=self.pokemon_right["HP"]
 
         # Logique de combat (celui qui joue)
-        self.pokemon_actif = p1
-        self.pokemon_passif = p2
+        self.pokemon_actif = p1.copy()
+        self.pokemon_passif = p2.copy()
 
         self.objet = {}
         self.image=[]
@@ -123,6 +125,7 @@ class PokemonApp(tk.Toplevel):
     # ----------------------------------------------------
 
     def faire_degats(self, attaquant, defenseur, attaque):
+        
         self.messagePokemon.config(text=f"{defenseur['Name']} attaque !")
         
         if attaquant["Name"]!= self.pokemon_actif["Name"]:
@@ -142,8 +145,11 @@ class PokemonApp(tk.Toplevel):
 
         if self.logic.estIlPerdant(defenseur):
             self.messagePokemon.config(text=f"{attaquant['Name']} gagne le combat !")
+            if defenseur["#"]==self.pokemon_left["#"]:
+                defenseur["HP"] = self.pokemon_left["HP"]
+            else:
+                defenseur["HP"] = self.pokemon_right["HP"]
             self.winner=attaquant
-            #Creation d'un style car Mac Os ne supporte pas les bouton avec bg et fg
             style=ttk.Style()
             style.theme_use('clam')
             style.configure('Quit.TButton',font=("Pokemon Solid", 30),background="#FF0000",foreground="#FFFFFF")
