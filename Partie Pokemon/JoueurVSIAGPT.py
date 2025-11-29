@@ -219,6 +219,7 @@ class JoueurVSIA() :
                     self.boutons[(grande_ligne, grande_col, ligne, col)].destroy()
         self.canvas.create_rectangle(200 + 200 * grande_col, 100 + 200 * grande_ligne, 392 + 200 * grande_col,292 + 200 * grande_ligne, fill="light blue", outline="light blue", width=1)
         self.canvas.create_text(300 + 200 * grande_col, 200 + 200 * grande_ligne, text=self.joueur, font=("Arial", 100, "bold"), fill=self.color)
+        self.case= None
         self.gagnantsSousGrilles[grande_ligne][grande_col]=self.joueur
 
     # Mettre fin à la partie quand un joueur a gagné
