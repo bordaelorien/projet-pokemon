@@ -2,10 +2,8 @@ import tkinter as tk
 import deck_builder as db
 import data_loader as dl
 from paths import *
-from tkinter import ttk
 from PIL import Image, ImageTk
-from affichageCombat import PokemonApp
-import pandas as pd
+from affichageCombatJvsIA import PokemonJVSIA
 import random
 class JoueurVSIA() :
 
@@ -16,6 +14,7 @@ class JoueurVSIA() :
         self.canvas.pack()
 
         # STRUCTURE :
+        
         self.grille = [[[['' for i in range(3)] for i in range(3)] for i in range(3)] for i in range(3)]
         
         # Statut de victoire pour chaque sous-grille (None, 'X' ou 'O')
@@ -32,7 +31,7 @@ class JoueurVSIA() :
         self.IA = 'O'
         self.coupsJoueurX=[]
         # Annonce graphique du joueur en cours
-        self.annonce_joueur=self.canvas.create_text(500,20, text="Cliquez sur START pour commencer", font=("Times new roman", 15, "bold"), fill="black")
+        self.annonce_joueur=self.canvas.create_text(500,20, text="Placer votre Pokemon pour commencer", font=("Times new roman", 15, "bold"), fill="black")
 
         # VARIABLES POUR LA REGLE DU ULTIMATE TIC TAC TOE :
         #   case dans la sous-grille qui vient d'être jouée
@@ -43,6 +42,7 @@ class JoueurVSIA() :
 
         # POKEMON :
         self.deck1,self.deck2=db.decks(dl.dfPokemon())
+        self.matriceAdj=dl.dfMatriceAdjacence()
         # BOUTONS :
         self.bouton_deck()
         self.afficherDecks()
@@ -58,7 +58,8 @@ class JoueurVSIA() :
         
     def tailleImage(self,path, sizeX,sizeY):
         """
-        Redimensionne une image à une taille donnée et la convertit en PhotoImage pour Tkinter."""
+        Redimensionne une image à une taille donnée et la convertit en PhotoImage pour Tkinter.
+        """
         try:
             image = Image.open(path)
             image = image.resize((sizeX, sizeY), Image.LANCZOS)
@@ -71,9 +72,9 @@ class JoueurVSIA() :
         """
         Crée les labels pour les decks des joueurs et les Pokémon sélectionnés.
         """
-        label_deck=tk.Label(self.fenetre,text="Deck X",bg="light blue",fg="red",font=("Arial", 16, "bold"))
+        label_deck=tk.Label(self.fenetre,text="Votre Deck",bg="light blue",fg="red",font=("Arial", 16, "bold"))
         label_deck.place(x=950, y=10)
-        label_deck=tk.Label(self.fenetre,text="Deck O",bg="light blue",fg="blue",font=("Arial", 16, "bold"))
+        label_deck=tk.Label(self.fenetre,text="Deck IA",bg="light blue",fg="blue",font=("Arial", 16, "bold"))
         label_deck.place(x=1250, y=10)
         self.selected_label_j1 = tk.Label(self.fenetre,text="Aucun Pokémon ",bg="light blue",fg="red",font=("Arial", 16, "bold"))
         self.selected_label_j1.place(x=900, y=60)
@@ -105,17 +106,16 @@ class JoueurVSIA() :
                     type_name=typename
                     imageType= self.tailleImage(pathType(type_name.lower()), 144, 32)
                     
-                    btn = tk.Button(self.fenetre,image=imageType,font=("Arial", 16, "bold"),bg="#1e1e1e",fg="white",padx=10,pady=10,command=lambda t=type_name, d=deck: self.afficher_pokemons_type(t, d))
+                    btn = tk.Button(self.fenetre,image=imageType,font=("Arial", 16, "bold"),bg="#1e1e1e",fg="white",padx=10,pady=10,command=lambda t=type_name, d=deck: self.afficher_pokemons_type(t, d, IA_turn=True))
                     btn.image = imageType
                     btn.place(x=1200, y=100 + deltaY*j)
                     j+=1
 
-    def afficher_pokemons_type(self, type_name, deck):
+    def afficher_pokemons_type(self, type_name, deck, IA_turn=False):
         """
         Affiche une nouvelle fenêtre avec les Pokémon du type spécifié.
         """
         pokemonsType = deck[deck["Type 1"] == type_name]
-
         root = tk.Toplevel(self.fenetre)
         root.title(f"Pokémons de type {type_name}")
         root.geometry("600x800")
@@ -135,7 +135,9 @@ class JoueurVSIA() :
                 img_pokemon=self.tailleImage(pathPokemon(rowPokemon["#"], rowPokemon["Name"].lower()),100,100)
             except:
                 img_pokemon = None
-            btn = tk.Button(frame,text=rowPokemon["Name"],image=img_pokemon,compound="top",font=("Pokemon Solid", 14),bg="white",fg="#3c3c3c",padx=5,pady=5, command=lambda window=root, rowP=rowPokemon ,name=rowPokemon["Name"], player=1 if rowPokemon["Name"] in self.deck1["Name"].values else 2: (window.destroy(), self.pokemonChoisi(name, player,rowP)))
+            btn = tk.Button(frame,text=rowPokemon["Name"],image=img_pokemon,compound="top",font=("Pokemon Solid", 14),bg="white",fg="#3c3c3c",padx=5,pady=5,
+                            state="disabled" if IA_turn else "normal",
+                            command=lambda window=root, rowP=rowPokemon ,name=rowPokemon["Name"], player=1 if rowPokemon["Name"] in self.deck1["Name"].values else 2: (window.destroy(), self.pokemonChoisi(name, player,rowP)))
             btn.image = img_pokemon
             btn.grid(row=rowGrid, column=col, padx=10, pady=10, sticky="nsew")
             col += 1
@@ -259,7 +261,9 @@ class JoueurVSIA() :
 
     def annoncer_joueur(self):
         self.canvas.delete(self.annonce_joueur)
-        self.annonce_joueur=self.canvas.create_text(500,20, text=f"C'est au joueur {self.joueur} de jouer", font=("Times new roman", 15, "bold"), fill="black")
+        if self.joueur=='X':
+            self.annonce_joueur=self.canvas.create_text(500,20, text="C'est à votre tour de jouer", font=("Times new roman", 15, "bold"), fill="red")
+        
 
  
     # TESTER SI UN JOUEUR PEUT JOUER ET JOUER EFFECTIVEMENT
@@ -282,17 +286,18 @@ class JoueurVSIA() :
         On laisse le joueur humain jouer normalement, puis on déclenche
         le coup de l'IA si la partie continue.
         """
-        # On ignore les clics si la partie est finie ou si ce n'est pas le tour de l'humain
+        
         if self.gagnant!= None or self.joueur != self.humain:
             return
         self.test_jouer(gl, gc, l, c)
-        # Après le tour du joueur, si la partie n'est pas finie et que c'est à l'IA de jouer, on lance IA_move
+
         if self.gagnant == None and self.joueur == self.IA:
             self.IA_move()
 
     def IA_move(self):
         """
-        Pour l'instant aleatoire
+        Pour l'instant aleatoire ##Il faut que cela renvoie une position valide et un pokemon 
+        (je pensais faire aleatoire pour case vide et bestPokemonIA pour combat (la fonction est là en dessous))
         """
         if self.gagnant is not None or self.joueur != self.IA:
             return
@@ -335,32 +340,76 @@ class JoueurVSIA() :
         gl, gc, l, c = random.choice(coups_possibles)
         self.test_jouer(gl, gc, l, c)
 
+
+    def bestPokemonIA(self,pokemonAdverses):
+        """
+        Choisit le meilleur Pokémon contre une liste de Pokémon adverses.
+        """
+        # Pour l'instant, on choisit simplement un Pokémon aléatoire
+        if len(self.deck2) == 0:
+            return None
+        type1adverse=pokemonAdverses["Type 1"]
+        type2adverse=pokemonAdverses["Type 2"]
+        bestTypes=[]
+        bestType1=self.matriceAdj[self.matriceAdj["Type"]==type1adverse].to_list()
+        if isinstance(type2adverse,str):
+            bestType2=self.matriceAdj[self.matriceAdj["Type"]==type2adverse].to_list()
+            bestTypes=bestType1+bestType2
+            possiblePokemons=self.deck2.where((self.deck2["Type 1"].isin(bestTypes) | self.deck2["Type 2"].isin(bestTypes)) & (self.deck2["Total"]>=pokemonAdverses["Total"])).dropna()
+        else:
+            possiblePokemons=self.deck2.where(self.deck2["Type 1"].isin(bestTypes) & self.deck2["Total"]>=pokemonAdverses["Total"]).dropna()
+        if len(possiblePokemons)>0:
+            idx = random.choice(possiblePokemons.index.tolist())
+            return possiblePokemons.loc[idx]
+        else:
+            possiblePokemons=self.deck2.where(self.deck2["Type 1"].isin(bestTypes) | self.deck2["Type 2"].isin(bestTypes)).dropna()
+            if len(possiblePokemons)==0:
+                possiblePokemons=self.deck2.where(self.deck2["Total"]>=pokemonAdverses["Total"]).dropna()
+                if len(possiblePokemons)==0:
+                    idx = random.choice(self.deck2.index.tolist())
+                    return self.deck2.loc[idx]
+                idx = random.choice(possiblePokemons.index.tolist())
+                return possiblePokemons.loc[idx]
+            idx = random.choice(possiblePokemons.index.tolist())
+            return possiblePokemons.loc[idx]
+    
     def PokemonChoisi(self):
         """
         Retourne le Pokémon choisi par le joueur actuel et le retire de son deck.
         """
         if self.joueur == 'X':
-            # Joueur X (Humain)
             self.updateColor("X")
             if self.pokeChoisiDeck1 is None:
                 return None
             self.deck1.drop(self.deck1[self.deck1["#"] == self.pokeChoisiDeck1["#"]].index, inplace=True)
             return self.pokeChoisiDeck1
         else:
-            # Joueur O (IA)
             self.updateColor("O")
-            # Si aucun Pokémon n'a encore été choisi pour l'IA, on en prend un aléatoirement
+            # A REMPLACER PAR BESTPOKEMONIA
+    
             if self.pokeChoisiDeck2 is None:
-                if len(self.deck2) == 0:
-                    return None
-                idx = random.choice(self.deck2.index.tolist())
-                self.pokeChoisiDeck2 = self.deck2.loc[idx]
-            if self.pokeChoisiDeck2 is None:
-                return None
-            self.deck2.drop(self.deck2[self.deck2["#"] == self.pokeChoisiDeck2["#"]].index, inplace=True)
-            return self.pokeChoisiDeck2
+    
+                return self.pokemonChoisiRandom()
+            else:
+                self.deck2.drop(self.deck2[self.deck2["#"] == self.pokeChoisiDeck2["#"]].index, inplace=True)
+                return self.pokeChoisiDeck2
 
+
+    def pokemonChoisiRandom(self):
+        """
+        Retourne un Pokémon aléatoire du deck de l'IA et le retire de son deck.
+        """
+        if len(self.deck2) == 0:
+            return None
+        idx = random.choice(self.deck2.index.tolist())
+        pokemon = self.deck2.loc[idx]
+        self.deck2.drop(self.deck2[self.deck2["#"] == pokemon["#"]].index, inplace=True)
+        return pokemon
     def jouer(self, gl, gc, l, c):
+        """
+        Effectue le coup du joueur actuel à la position spécifiée.
+        Gère le placement ou le combat selon la situation.
+        Met à jour l'état du jeu après le coup."""
         pokemon = self.PokemonChoisi()
         if pokemon is None:
             return
@@ -370,15 +419,20 @@ class JoueurVSIA() :
         #Case vide = placement simple
         if case is None:
             self.placerPokemon(gl, gc, l, c)
-
+            
         #Case occupée par l'adversaire = combat
         elif self.pokemons_places[gl][gc][l][c][0] != self.joueur and self.pokemons_places[gl][gc][l][c] != -1:
-            self.initierCombat(gl, gc, l, c, pokemon)
+            if self.joueur=="O":
+                self.initierCombat(gl, gc, l, c, pokemon,IA_turn=True)
+            else:
+                self.initierCombat(gl, gc, l, c, pokemon)
+            
 
         #Case déjà gagnée = on ignore
         else:
+            
             return
-
+        
         # Verifications après le placement/combat
         if self.verif_victoire(self.grille[gl][gc]):
             self.changer_gagnant_sousgrille(gl, gc)
@@ -387,7 +441,7 @@ class JoueurVSIA() :
         self.resetPokemonChoisi()
 
         # Verfication victoire grande grille
-        if self.verifVictoire(self.gagnantsSousGrilles):
+        if self.verif_victoire(self.gagnantsSousGrilles):
             self.changer_gagnant_grandegrille()
             return
 
@@ -400,27 +454,10 @@ class JoueurVSIA() :
         self.annoncer_joueur()
         self.dessiner_encadrement()
 
-    def verifVictoire(self, grille):
-        # Vérification des lignes
-        for i in range(3):
-            if grille[i][0] == self.joueur and grille[i][1] == self.joueur and grille[i][2] == self.joueur:
-                return True
-
-        # Vérification des colonnes
-        for j in range(3):
-            if grille[0][j] == self.joueur and grille[1][j] == self.joueur and grille[2][j] == self.joueur:
-                return True
-
-        # Vérification diagonale principale
-        if grille[0][0] == self.joueur and grille[1][1] == self.joueur and grille[2][2] == self.joueur:
-            return True
-
-        # Vérification diagonale secondaire
-        if grille[0][2] == self.joueur and grille[1][1] == self.joueur and grille[2][0] == self.joueur:
-            return True
-        return False
-
     def placerPokemon(self, gl, gc, l, c):
+        """
+        Place un Pokémon dans la grille à la position spécifiée.
+        Met à jour l'affichage graphique en conséquence."""
         
         if self.pokemons_places[gl][gc][l][c]==-1:
             return
@@ -428,16 +465,17 @@ class JoueurVSIA() :
         if pokemon is None:
             return
         
-        #on place le pokemon dans les tableaux
         self.pokemons_places[gl][gc][l][c] = (self.joueur, pokemon,pokemon["#"])
         self.grille[gl][gc][l][c] = self.joueur
 
-        #on le place graphiquement
         image=self.tailleImage(pathPokemon(pokemon["#"], pokemon["Name"].lower()),50,50)
         self.boutons[(gl, gc, l, c)].configure(image=image, compound="top" , bg=self.color, highlightbackground=self.color, highlightthickness=5)
         self.boutons[(gl, gc, l, c)].image = image
         
     def resetPokemonChoisi(self):
+        """ 
+        Réinitialise le Pokémon choisi pour le joueur actuel. 
+        """
         if self.joueur=='X':
             self.pokeChoisiDeck1=None
             self.color=None
@@ -447,6 +485,9 @@ class JoueurVSIA() :
             self.color=None
             self.selected_label_j2.config(text="Aucun Pokémon ")
     def updateColor(self,joueur=None):
+        """
+        Met à jour la couleur associée au joueur actuel.
+        """
         if joueur == None:
             return
         
@@ -454,23 +495,27 @@ class JoueurVSIA() :
             self.color="red"
         else:
             self.color="blue"
-    def initierCombat(self, gl, gc, l, c,pokemon):
-        pokemonAdversaire = self.pokemons_places[gl][gc][l][c][1]
-        pokemonAttaque = pokemon
-        combat = PokemonApp(pokemonAttaque, pokemonAdversaire,self.fenetre)
+    def initierCombat(self, gl, gc, l, c,pokemon,IA_turn=False):
+        """
+        Initialise un combat entre le Pokémon du joueur actuel et celui de l'adversaire.
+        Met à jour l'état du jeu en fonction du résultat du combat.
+        """
+        pokemonIA = self.pokemons_places[gl][gc][l][c][1]
+        pokemonJ = pokemon
+        if IA_turn:
+            pokemonIA, pokemonJ = pokemonJ, pokemonIA
+        
+        combat = PokemonJVSIA(pokemonJ, pokemonIA,self.fenetre)
         combat.mainloop()
         gagnant_combat = combat.winner
-        if gagnant_combat["#"] == pokemonAttaque["#"]:
-            gagnant=self.joueur
-            pokemonPerdant = pokemonAdversaire
+        if gagnant_combat["#"] == pokemonIA["#"]:
+            gagnant='O'
+            self.color="blue"
+            pokemonPerdant = pokemonJ
         else:
-            if self.joueur=='X':
-                gagnant='O'
-                self.color="blue"
-            else:
-                gagnant = 'X'
-                self.color="red"
-            pokemonPerdant = pokemonAttaque
+            gagnant = 'X'
+            self.color="red"
+            pokemonPerdant = pokemonIA
         
         self.grille[gl][gc][l][c] = gagnant
         self.updateColor(gagnant)
@@ -485,13 +530,6 @@ class JoueurVSIA() :
             self.deck1.loc[len(self.deck1)] = pokemonPerdant
             self.deck1.loc[len(self.deck1)-1, "Level"] += 1
 
-        if self.joueur=='X':
-            self.deck2.loc[len(self.deck2)] = pokemonAdversaire
-            self.deck2.loc[len(self.deck2)-1, "Level"] += 1
-            
-        else:
-            self.deck1.loc[len(self.deck1)] = pokemonAdversaire
-            self.deck1.loc[len(self.deck1)-1, "Level"] += 1
                 
                 
     

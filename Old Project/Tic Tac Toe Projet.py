@@ -4,7 +4,7 @@ from paths import *
 import data_loader as dl
 import deck_builder as db
 import game_logic as gl
-from affichageCombat import PokemonApp
+from affichageCombatJvsJ import PokemonApp
 
 class Jeu (): 
 

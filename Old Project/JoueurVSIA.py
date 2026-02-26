@@ -4,7 +4,7 @@ import data_loader as dl
 from paths import *
 from tkinter import ttk
 from PIL import Image, ImageTk
-from affichageCombat import PokemonApp
+from affichageCombatJvsJ import PokemonApp
 import pandas as pd
 from time import sleep
 import random

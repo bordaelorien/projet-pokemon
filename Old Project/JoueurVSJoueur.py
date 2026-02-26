@@ -4,7 +4,7 @@ import data_loader as dl
 from paths import *
 from tkinter import ttk
 from PIL import Image, ImageTk
-from affichageCombat import PokemonApp
+from affichageCombatJvsJ import PokemonJVSJ
 import pandas as pd
 class JoueurVSJoueur() :
 
@@ -57,6 +57,9 @@ class JoueurVSJoueur() :
 
         
     def tailleImage(self,path, sizeX,sizeY):
+        """
+        Redimensionne une image à une taille donnée
+        """
         try:
             image = Image.open(path)
             image = image.resize((sizeX, sizeY), Image.LANCZOS)
@@ -66,6 +69,9 @@ class JoueurVSJoueur() :
         
 
     def bouton_deck(self):
+        """
+        Affiche les boutons pour les decks des deux joueurs
+        """
         label_deck=tk.Label(self.fenetre,text="Deck X",bg="light blue",fg="red",font=("Arial", 16, "bold"))
         label_deck.place(x=950, y=10)
         label_deck=tk.Label(self.fenetre,text="Deck O",bg="light blue",fg="blue",font=("Arial", 16, "bold"))
@@ -75,6 +81,9 @@ class JoueurVSJoueur() :
         self.selected_label_j2 = tk.Label(self.fenetre,text="Aucun Pokémon ",bg="light blue",fg="blue",font=("Arial", 16, "bold"))
         self.selected_label_j2.place(x=1200, y=60)
     def afficherDecks(self):
+        """
+        Affiche les types de pokémons disponibles dans les decks des deux joueurs
+        """
         for i in range(2):
             if i==0:
                 deck=self.deck1
@@ -102,6 +111,9 @@ class JoueurVSJoueur() :
                     j+=1
 
     def afficher_pokemons_type(self, type_name, deck):
+        """
+        Affiche une nouvelle fenêtre avec les Pokémon du type spécifié.
+        """
         pokemonsType = deck[deck["Type 1"] == type_name]
 
         root = tk.Toplevel(self.fenetre)
@@ -131,6 +143,9 @@ class JoueurVSJoueur() :
                 col = 0
                 rowGrid += 1
     def pokemonChoisi(self, pokemonName, joueur,row=None):
+        """
+        Met à jour le label du Pokémon sélectionné pour le joueur spécifié.
+        """
         if joueur == 1:
             self.selected_label_j1.config(text=pokemonName)
             self.pokeChoisiDeck1=row
@@ -255,6 +270,10 @@ class JoueurVSJoueur() :
             if (gl,gc)==self.case:
                 self.jouer(gl, gc, l, c)
     def deckActuel(self):
+        """
+        Retourne le deck du joueur actuel et enlève le pokémon choisi du deck
+        Fonction que l'on active que lorsqu'un joueur place un pokémon sur la grille
+        """
         if self.joueur=='X':
             self.color="red"
             self.deck1.drop(self.deck1[self.deck1["#"] == self.pokeChoisiDeck1["#"]].index, inplace=True)
@@ -265,26 +284,29 @@ class JoueurVSJoueur() :
             self.deck2.drop(self.deck2[self.deck2["#"] == self.pokeChoisiDeck2["#"]].index, inplace=True)
             return self.pokeChoisiDeck2
     def jouer(self, gl, gc, l, c):
+        """
+        Gère le placement d'un pokémon sur la grille
+        """
         pokemon=self.deckActuel()
         if pokemon is None:
             return
         
-        #si il n'y pas déjà un pokemon sur la case, je joueur en pose un
+        #Case vide = placement simple
         if self.pokemons_places[gl][gc][l][c] == None:
             self.placerPokemon(gl, gc, l, c)
             
-        #si l'adversaire a déjà mis un pokemon sur cette case, on lance un combat pour décider qui remporte la case
+        #Case occupée par l'adversaire = combat
         elif self.pokemons_places[gl][gc][l][c][0] != self.joueur:
             self.initierCombat(gl, gc, l, c,pokemon)
-        #si le joueur a déjà mis un pokemon sur la case, on fait comme si il n'avait cliqué sur rien
+        #Case occupée par soi-même = rien
         else:
             return
         #vérification de victoire locale et globale
-        if self.verifVictoire(self.grille[gl][gc])==True:
+        if self.verif_victoire(self.grille[gl][gc])==True:
             self.changer_gagnant_sousgrille(gl,gc)
             self.gagnant_sous_grille=True 
         self.resetPokemonChoisi()
-        if self.verifVictoire(self.gagnantsSousGrilles)==True:
+        if self.verif_victoire(self.gagnantsSousGrilles)==True:
             print("GAGNANT")
             self.changer_gagnant_grandegrille()
             return
@@ -305,31 +327,15 @@ class JoueurVSJoueur() :
 
         #dessin d'un encadrement graphique pour le prochain joueur:
         self.dessiner_encadrement()
-    def verifVictoire(self, grille):
-        # Vérification des lignes
-        for i in range(3):
-            if grille[i][0] == self.joueur and grille[i][1] == self.joueur and grille[i][2] == self.joueur:
-                return True
 
-        # Vérification des colonnes
-        for j in range(3):
-            if grille[0][j] == self.joueur and grille[1][j] == self.joueur and grille[2][j] == self.joueur:
-                return True
-
-        # Vérification diagonale principale
-        if grille[0][0] == self.joueur and grille[1][1] == self.joueur and grille[2][2] == self.joueur:
-            return True
-
-        # Vérification diagonale secondaire
-        if grille[0][2] == self.joueur and grille[1][1] == self.joueur and grille[2][0] == self.joueur:
-            return True
-        return False
 
     def placerPokemon(self, gl, gc, l, c):
+        """
+        Place un pokémon sur la grille sans combat
+        """
         if self.pokemons_places[gl][gc][l][c]==-1:
             return
         pokemon=self.deckActuel()
-        print(self.color)
         if pokemon is None:
             return
         
@@ -343,6 +349,9 @@ class JoueurVSJoueur() :
         self.boutons[(gl, gc, l, c)].image = image
         
     def resetPokemonChoisi(self):
+        """
+        Réinitialise le pokémon choisi pour le joueur actuel
+        """
         if self.joueur=='X':
             self.pokeChoisiDeck1=None
             self.color=None
@@ -353,46 +362,51 @@ class JoueurVSJoueur() :
             self.selected_label_j2.config(text="Aucun Pokémon ")
 
     def initierCombat(self, gl, gc, l, c,pokemon):
-        pokemonAdversaire = self.pokemons_places[gl][gc][l][c][1]
-        pokemonAttaque = pokemon
-        combat = PokemonApp(pokemonAttaque, pokemonAdversaire,self.fenetre)
+        """
+        Initialise un combat entre le pokémon choisi et le pokémon adverse déjà placé
+        """
+        attaquant=self.joueur
+        pokemonJ1 = self.pokemons_places[gl][gc][l][c][1]
+        pokemonJ2 = pokemon
+
+        combat = PokemonJVSJ(pokemonJ1, pokemonJ2,self.fenetre)
         combat.mainloop()
         gagnant_combat = combat.winner
-        if gagnant_combat["#"] == pokemonAttaque["#"]:
-            self.grille[gl][gc][l][c] = self.joueur
-            self.boutons[(gl, gc, l, c)].configure(text=self.joueur,image="",compound=None, bg=self.color, highlightbackground=self.color, highlightthickness=5,fg=self.color)
-            self.boutons[(gl, gc, l, c)].image = None
-            self.pokemons_places[gl][gc][l][c] = -1
-            if self.joueur=='X':
-                self.deck2.loc[len(self.deck2)] = pokemonAdversaire
-                self.deck2.loc[len(self.deck2)-1, "Level"] += 1
-                print(self.deck2.loc[len(self.deck2)-1])
-            else:
-                self.deck1.loc[len(self.deck1)] = pokemonAdversaire
-                self.deck1.loc[len(self.deck1)-1, "Level"] += 1
-                print(self.deck1.loc[len(self.deck1)-1])
-                
+        if gagnant_combat["#"] == pokemonJ2["#"]:
+            gagnant=attaquant
+            self.color=self.updateColor(attaquant)
+            pokemonPerdant = pokemonJ1
+        else:
+            if attaquant == 'X':  
 
-        elif gagnant_combat["#"] == pokemonAdversaire["#"]:
-            if self.joueur=='X':
-                self.grille[gl][gc][l][c] = 'O'
-                self.deck2.loc[len(self.deck2)] = pokemonAttaque
-                self.deck2.loc[len(self.deck2)-1, "Level"] += 1
-                self.boutons[(gl, gc, l, c)].configure(text='O',image="",compound=None, bg=self.color, highlightbackground=self.color, highlightthickness=5,fg=self.color)
-                self.boutons[(gl, gc, l, c)].image = None
-                self.pokemons_places[gl][gc][l][c] = -1
-                
+                gagnant = 'O' 
             else:
-                self.grille[gl][gc][l][c] = 'X'
-                self.deck1.loc[len(self.deck1)] = pokemonAttaque
-                self.deck1.loc[len(self.deck1)-1, "Level"] += 1
-                print(self.deck1.loc[len(self.deck1)-1])
-                self.boutons[(gl, gc, l, c)].configure(text='X',image="",compound=None, bg=self.color, highlightbackground=self.color, highlightthickness=5,fg=self.color)
-                self.boutons[(gl, gc, l, c)].image = None
-                self.pokemons_places[gl][gc][l][c] = -1
-                
-    
+                gagnant = 'X'
 
+            self.color=self.updateColor(gagnant)
+            pokemonPerdant = pokemonJ2
+        
+        self.grille[gl][gc][l][c] = gagnant
+        self.updateColor(gagnant)
+        self.boutons[(gl, gc, l, c)].configure(text=gagnant,image="",compound=None, bg=self.color, highlightbackground=self.color, highlightthickness=5,fg=self.color)
+        self.boutons[(gl, gc, l, c)].image = None
+        self.pokemons_places[gl][gc][l][c] = -1
+
+        if gagnant=='X':
+            self.deck2.loc[len(self.deck2)] = pokemonPerdant
+            self.deck2.loc[len(self.deck2)-1, "Level"] += 1
+        else:
+            self.deck1.loc[len(self.deck1)] = pokemonPerdant
+            self.deck1.loc[len(self.deck1)-1, "Level"] += 1
+
+    def updateColor(self, gagnant):
+        """
+        Met à jour la couleur en fonction du gagnant
+        """
+        if gagnant=='X':
+            self.color="red"
+        else:
+            self.color="blue"
 
        
         

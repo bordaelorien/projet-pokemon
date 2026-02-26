@@ -1,6 +1,6 @@
-# deck_builder.py
+
 import pandas as pd
-import random as rd
+
 
 def decks(df, deck_size = 60):
     fracPokemon=df.sample(deck_size*2).sort_values(by="Total",ascending=False)
