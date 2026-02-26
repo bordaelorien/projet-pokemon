@@ -1,5 +1,5 @@
 import pandas as pd
-import numpy as np
+
 """
 Prompt : 
 dans ce CSV (Fichier pokemon) tu trouveras des types donne moi tous les liens entre ces types 

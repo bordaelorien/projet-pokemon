@@ -1,0 +1,17 @@
+pokemon_game/
+│
+├── main.py
+├── app.py
+├── paths.py
+├── data_loader.py
+├── deck_builder.py
+├── game_logic.py
+├── images.py
+│
+├── arial.ttf
+├── pokemon.csv
+├── attaques.csv
+├── image1.png
+├── image2.png
+├── image3.png
+└── etc…
