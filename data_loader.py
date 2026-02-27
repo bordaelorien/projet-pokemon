@@ -9,3 +9,6 @@ def dfPokemon():
 def dfAttaques():
     df = pd.read_csv(pathDf("attaques"))
     return df
+def dfMatriceAdjacence():
+    df = pd.read_csv(pathDf("matriceAdjacence"))
+    return df

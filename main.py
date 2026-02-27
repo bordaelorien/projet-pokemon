@@ -1,11 +1,11 @@
-import JoueurVSJoueur
-import JoueurVSIA
-import JoueurVSIA
+from JvsIA import JoueurVSIA
+from JvsJ import JoueurVSJoueur
+import modelisation
 
 
 import tkinter as tk
 
-
+nbrePokemons=60
 
 root = tk.Tk()
 root.title("Ultimate Tic tac toe Pokemon")
@@ -19,17 +19,20 @@ canvasmenu.create_text(500, 50, text="Bienvenue dans Ultimate Tic tac toe Pokemo
 
 def launch_jvsj():
     root.destroy()
-    # call the function/class from the module
-    fenetre = JoueurVSJoueur.JoueurVSJoueur()
+    fenetre = JoueurVSJoueur(nbrePokemons)
 
 def launch_jvsia():
     root.destroy()
-    fenetre = JoueurVSIA.JoueurVSIA()
-
-def launch_iavsia():
+    fenetre = JoueurVSIA(nbrePokemons)
+def launch_modelisation():
     root.destroy()
-    # reuse JoueurVSIA as placeholder for IA vs IA; replace with proper module/function if available
-    fenetre = JoueurVSIA.JoueurVSIA()
+    nbre=input("Combien de parties voulez-vous simuler ? (10 par défaut) ")
+    if nbre=="":
+        nbre=10
+    else:
+        nbre=int(nbre)
+    fenetre=modelisation.IAVSIA()
+    fenetre.modelisation(nbre)
 
 bouton_jvsj = tk.Button(root, text="Joueur vs Joueur", font=("Helvetica", 30, "bold"), width=20,
                         bg="light blue", fg="blue", activebackground="light blue",
@@ -43,7 +46,7 @@ bouton_jvsia.place(x=250, y=250)
 
 bouton_iavsia = tk.Button(root, text="IA vs aléatoire", font=("Helvetica", 30, "bold"), width=20,
                           bg="light blue", fg="blue", activebackground="light blue",
-                          command=launch_iavsia)  # or another script for IA vs IA
+                          command=launch_modelisation) 
 bouton_iavsia.place(x=250, y=350)
 
 root.mainloop()

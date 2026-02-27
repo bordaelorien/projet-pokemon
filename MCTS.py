@@ -125,13 +125,13 @@ class Noeud:
         self.score = 0 
         self.visites = 0       
         self.coup_precedent = coup_precedent     
-        self._unexpanded_moves = self.plateau.coupsPossibles()
+        self._coups_non_explores = self.plateau.coupsPossibles()
 
     def expansion(self):
         """Ajoute un enfant correspondant à un coup pas encore exploré."""
-        if not self._unexpanded_moves:
+        if not self._coups_non_explores:
             return None
-        coup = self._unexpanded_moves.pop()  # retire un coup à développer
+        coup = self._coups_non_explores.pop()  # retire un coup à développer
         plateau_enfant = self.plateau.copie()
         plateau_enfant.jouer(*coup)
         enfant = Noeud(plateau_enfant, parent=self, coup_precedent=coup)
@@ -194,7 +194,7 @@ def MCTS(grille, gagnantsSousGrilles, pokemons_places, joueur, case, iterations=
         noeud = racine
 
         #sélection
-        while not noeud.estFinal() and len(noeud._unexpanded_moves) == 0:
+        while not noeud.estFinal() and len(noeud._coups_non_explores) == 0:
             noeud = noeud.meilleurEnfant(c)          
         
         #expansion
